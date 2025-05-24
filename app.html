@@ -1,0 +1,1843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Event Feedback</title>
+    
+    <!-- Firebase SDKs (v8 namespaced) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <!-- Other SDKs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: 'Sassoon Primary', 'Comic Sans MS', Arial, sans-serif;
+            margin: 0;
+            background-color: #ffffff;
+            display: flex;
+            height: 100vh;
+            touch-action: manipulation;
+        }
+
+        .container {
+            width: 100%;
+            padding: 20px;
+            background-color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            box-sizing: border-box; 
+        }
+
+        header {
+            text-align: center;
+            padding: 15px;
+            /* margin-bottom will be handled by specific screen content */
+        }
+
+        /* This H1 will be replaced by an image on the feedback screen */
+        h1#page-title-text { 
+            color: #000000;
+            font-size: 48px;
+            margin: 0;
+        }
+        img#page-title-image {
+            max-height: 80px; /* Adjust as needed */
+            width: auto;
+            margin: 0 auto;
+            display: none; /* Hidden by default, shown on feedback screen */
+        }
+
+
+        h2 {
+            font-size: 36px;
+            color: #1d1d1f;
+            margin: 10px 0;
+        }
+
+        h3 {
+            font-size: 24px;
+            color: #1d1d1f;
+            margin: 15px 0;
+        }
+
+        .screen {
+            display: none;
+            flex-direction: column;
+            flex: 1;
+            /* justify-content: space-between; */ /* Allow more flexible content flow */
+            overflow-y: auto; 
+        }
+
+        .active {
+            display: flex;
+        }
+
+        /* Setup Screen (Now Event Selection Grid) */
+        .setup-screen {
+            justify-content: flex-start; /* Align grid to top */
+            align-items: center;
+            text-align: center;
+        }
+        
+        .event-grid-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center; /* Center grid vertically if space allows */
+            flex-grow: 1; /* Allow grid to take available space */
+            width: 100%;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        .event-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr); /* 3 columns */
+            gap: 20px; /* Gap between buttons */
+            width: 100%;
+            max-width: 700px; /* Max width of the grid */
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .event-button {
+            background-color: transparent;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            display: flex; /* Use flex to help center image */
+            flex-direction: column; /* Stack image and (optional) text */
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+            aspect-ratio: 1 / 1; /* Make buttons square */
+            overflow: hidden;
+        }
+
+        .event-button:hover {
+            transform: translateY(-3px) scale(1.03);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        }
+        .event-button:active {
+            transform: translateY(0px) scale(0.97);
+        }
+
+        .event-button img {
+            width: 100%;  /* Image takes full width of button */
+            height: 100%; /* Image takes full height of button */
+            object-fit: cover; /* Cover the button area, might crop */
+            /* object-fit: contain; /* Show whole image, might leave space */
+            display: block;
+            border-radius: 10px; /* Slightly less than button for inset look */
+        }
+        
+        /* Voice feedback checkbox */
+        .voice-feedback-section {
+            margin-top: 10px; /* Space above the checkbox */
+            margin-bottom: 20px; /* Space below checkbox, before bottom buttons */
+            text-align: center;
+        }
+        .voice-feedback-section label {
+            font-size: 14px;
+            color: #1d1d1f;
+            margin-right: 5px;
+        }
+
+
+        /* Bottom Buttons Container */
+        .bottom-nav-buttons {
+            display: flex;
+            flex-direction: column; /* Stack buttons vertically */
+            align-items: center; /* Center buttons horizontally */
+            width: 100%;
+            padding: 15px 0; /* Padding top and bottom */
+            margin-top: auto; /* Pushes to the bottom */
+            box-sizing: border-box;
+        }
+
+        .nav-action-button { /* General class for bottom buttons */
+            background-color: #007aff;
+            color: white;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            max-width: 350px; /* Max width for these buttons */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: background-color 0.3s, transform 0.1s;
+            margin-bottom: 10px; /* Space between stacked buttons */
+            tabindex: 0;
+        }
+        .nav-action-button:last-child {
+            margin-bottom: 0;
+        }
+        
+        .nav-action-button.admin-button-style { /* Specific style for admin button */
+            background-color: #ffcc00; /* Yellow */
+            color: #1d1d1f; /* Darker text for better contrast on yellow */
+        }
+        .nav-action-button.admin-button-style:hover {
+            background-color: #e6b800; /* Darker yellow on hover */
+        }
+
+        .nav-action-button:hover {
+            transform: translateY(-1px);
+        }
+
+        /* Feedback Screen specific styling - largely the same */
+        .feedback-screen {
+            text-align: center;
+            flex: 1;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .feedback-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            width: 100%;
+            position: relative;
+        }
+
+        #feedback-screen-subtitle { /* Was event-display */
+            font-size: clamp(24px, 5vw, 32px); /* Adjusted for "Student Feedback" */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 90%;
+            margin-bottom: 20px; /* Space below subtitle */
+        }
+
+        .feedback-buttons {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            gap: 10px;
+        }
+
+        .feedback-button {
+            width: clamp(150px, 25vw, 200px);
+            height: clamp(150px, 25vw, 200px);
+            border-radius: 12px;
+            border: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            color: white;
+            font-weight: 500;
+            position: relative;
+            overflow: hidden;
+            tabindex: 0;
+        }
+
+        .feedback-button:hover {
+            transform: translateY(-1px);
+        }
+
+        .feedback-button:active {
+            animation: buttonPress 0.3s ease;
+        }
+
+        @keyframes buttonPress {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.95); }
+            100% { transform: scale(1.05); }
+        }
+
+        .thumbs-up.burst-up::after,
+        .thumbs-down.burst-down::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100%;
+            height: 100%;
+            border-radius: 12px;
+            transform: translate(-50%, -50%) scale(0);
+            z-index: -1;
+            animation: burst 0.3s ease forwards;
+        }
+
+        .thumbs-up.burst-up::after {
+            background: radial-gradient(circle, rgba(52,199,89,0.8) 0%, rgba(52,199,89,0) 70%);
+        }
+
+        .thumbs-down.burst-down::after {
+            background: radial-gradient(circle, rgba(255,59,48,0.8) 0%, rgba(255,59,48,0) 70%);
+        }
+
+        @keyframes burst {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+        }
+
+        .thumbs-up {
+            background-color: #2ba648;
+        }
+
+        .thumbs-down {
+            background-color: #e32b22;
+        }
+
+        .thumb-icon {
+            font-size: clamp(60px, 10vw, 80px);
+            margin-bottom: 15px;
+        }
+
+        .feedback-text {
+            font-size: clamp(18px, 3vw, 24px);
+        }
+
+        .feedback-confirmation {
+            position: absolute;
+            top: 20%; /* Adjusted slightly */
+            background-color: #007aff;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 18px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 10; 
+        }
+
+        .feedback-confirmation.show {
+            opacity: 1;
+        }
+
+        .summary-bar {
+            background-color: #f5f5f7;
+            padding: 15px;
+            border-radius: 12px;
+            margin-top: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            width: 80%;
+            max-width: 600px;
+        }
+
+        .thermometer {
+            flex-grow: 1;
+            height: 30px;
+            background-color: #d2d2d7;
+            border-radius: 15px;
+            margin: 0 15px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .thermometer-fill {
+            height: 100%;
+            background-color: #34c759;
+            border-radius: 15px;
+            transition: width 0.5s ease-in-out;
+        }
+
+        .counter {
+            font-size: 20px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+        }
+
+        .thumbs-icon {
+            margin-right: 5px;
+            font-size: 24px;
+        }
+
+        .control-panel {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            flex-wrap: wrap; 
+        }
+
+        .admin-button, .report-button { /* These are on feedback screen */
+            background-color: #007aff;
+            color: white;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: background-color 0.3s, transform 0.1s;
+            tabindex: 0;
+            position: relative;
+        }
+
+        .home-button {
+            background-color: #007aff;
+            color: white;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: background-color 0.3s, transform 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 60px;
+            height: 40px; 
+            box-sizing: border-box;
+            tabindex: 0;
+        }
+
+        .admin-button:hover, .report-button:hover, .home-button:hover {
+            transform: translateY(-1px);
+        }
+        
+        /* ... other existing styles for admin screen, modals etc. remain largely the same ... */
+        /* Ensure to check media queries for the new grid and bottom buttons */
+        .tooltip::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #1d1d1f;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .tooltip:hover::after {
+            opacity: 1;
+        }
+
+        .home-icon {
+            width: 24px;
+            height: 24px;
+            fill: white;
+        }
+
+        .sync-status {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            color: #6b7280;
+            margin-left: 10px; /* Spacing */
+        }
+
+        .sync-icon {
+            margin-right: 5px;
+            font-size: 20px;
+        }
+
+        .online {
+            color: #34c759;
+        }
+
+        .offline {
+            color: #ff3b30;
+        }
+
+        /* Admin Screen */
+        .admin-screen {
+            padding: 20px;
+        }
+        .admin-section {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .admin-section:last-child {
+            border-bottom: none;
+        }
+        .admin-section h3 {
+            margin-top: 0;
+        }
+
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .admin-header > div { /* Container for buttons */
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .admin-filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center; /* Align items vertically */
+        }
+
+        .admin-filters label {
+            font-size: 14px;
+            margin-bottom: 0; /* Adjust for inline display */
+        }
+
+        .admin-filters select, .admin-filters input {
+            padding: 8px;
+            border: 1px solid #c7c7cc;
+            border-radius: 8px;
+            font-size: 14px;
+            min-width: 150px; /* Ensure decent width */
+        }
+
+        .export-button, .reset-button, .save-pdf-button, .save-events-button { /* Added save-events-button */
+            background-color: #007aff;
+            color: white;
+            padding: 12px 25px;
+            font-size: 16px;
+            font-weight: 500;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: background-color 0.3s, transform 0.1s;
+            tabindex: 0;
+        }
+        .save-events-button {
+            background-color: #34c759; /* Green for save */
+            margin-top: 10px;
+        }
+
+
+        .reset-button {
+            background-color: #ff3b30;
+        }
+
+        .save-pdf-button {
+            background-color: #34c759;
+        }
+
+        .export-button:hover, .reset-button:hover, .save-pdf-button:hover, .save-events-button:hover {
+            transform: translateY(-1px);
+        }
+
+        .charts-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .chart-wrapper {
+            text-align: center;
+            background-color: #f9f9f9; /* Light background for charts */
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .chart-title {
+            font-size: 14px;
+            color: #1d1d1f;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .mini-chart {
+            width: 100px !important; /* Ensure Chart.js respects this */
+            height: 100px !important;
+        }
+
+        .data-table-container { /* Added for potential scroll on table */
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #d2d2d7;
+            border-radius: 8px;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0; /* Removed top margin as container handles it */
+            font-family: 'Sassoon Primary', 'Comic Sans MS', Arial, sans-serif;
+        }
+
+        .data-table th {
+            background-color: #f5f5f7;
+            color: #1d1d1f;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 1; /* Ensure header is above scrolling content */
+        }
+
+        .data-table td {
+            padding: 10px;
+            border: 1px solid #d2d2d7; /* Use border instead of border-bottom for all cells */
+            border-width: 0 0 1px 0; /* Bottom border for rows */
+        }
+        .data-table td:first-child {
+            border-left-width: 0;
+        }
+        .data-table td:last-child {
+            border-right-width: 0;
+        }
+
+        .data-table tr:nth-child(even) td { /* Apply to td for consistent background */
+            background-color: #f5f5f7;
+        }
+
+        .data-table tr:hover td { /* Apply to td */
+            background-color: #e9e9eb;
+        }
+
+        /* Event Management Styles */
+        .event-management-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        .event-management-form input[type="text"] {
+            flex-grow: 1;
+        }
+        .event-management-form button {
+            padding: 8px 15px;
+            font-size: 14px;
+            background-color: #007aff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        #managed-events-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        #managed-events-list li {
+            background-color: #f9f9f9;
+            padding: 8px 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #managed-events-list li button {
+            background-color: #ff3b30;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+
+        .nav-buttons {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            gap: 10px;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        .modal-title {
+            margin-top: 0;
+            color: #1d1d1f;
+            font-size: 18px;
+        }
+
+        .modal-input {
+            width: calc(100% - 18px);
+            padding: 8px;
+            margin: 10px 0;
+            border: 1px solid #c7c7cc;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Sassoon Primary', 'Comic Sans MS', Arial, sans-serif;
+            box-sizing: border-box;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 20px;
+            gap: 10px;
+        }
+
+        .modal-button {
+            padding: 8px 16px;
+            font-size: 16px;
+            font-weight: 500;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+
+        .modal-button:hover {
+            transform: translateY(-1px);
+        }
+
+        .cancel-button {
+            background-color: #ff3b30;
+            color: white;
+        }
+
+        .confirm-button {
+            background-color: #34c759;
+            color: white;
+        }
+
+        .close-btn {
+            color: #6b7280;
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close-btn:hover {
+            color: #000000;
+        }
+
+        .report-chart {
+            margin: 20px 0;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .watermark {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            font-size: 12px;
+            color: #6b7280;
+            opacity: 0.7;
+            font-family: 'Sassoon Primary', 'Comic Sans MS', Arial, sans-serif;
+            pointer-events: none;
+            z-index: 1000;
+        }
+        
+        @media (max-width: 768px) {
+            h1#page-title-text { font-size: 32px; }
+            img#page-title-image { max-height: 60px; }
+            h2 { font-size: 26px; }
+            h3 { font-size: 20px; }
+
+            .event-grid {
+                grid-template-columns: repeat(2, 1fr); /* 2 columns on smaller tablets */
+                gap: 15px;
+                max-width: 500px;
+            }
+            .nav-action-button { max-width: 300px; }
+
+            /* ... other responsive adjustments ... */
+             .report-chart {
+                max-width: 100%; /* Full width on small screens */
+            }
+
+            .summary-bar {
+                width: 95%; /* Slightly wider on small screens */
+            }
+            .control-panel {
+                padding: 0 10px; /* Add padding to control panel on small screens */
+            }
+
+            .admin-header {
+                flex-direction: column;
+                align-items: stretch; /* Stretch buttons full width */
+            }
+             .admin-header > div {
+                width: 100%;
+             }
+
+            .export-button, .reset-button, .save-pdf-button, .save-events-button {
+                width: 100%;
+                margin-bottom: 10px; /* Add space between stacked buttons */
+            }
+            .admin-filters {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .admin-filters label, .admin-filters select, .admin-filters input {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+            .feedback-buttons {
+                flex-direction: column; 
+                gap: 15px;
+            }
+            .feedback-button {
+                 width: clamp(180px, 50vw, 220px); 
+                 height: clamp(120px, 30vw, 150px);
+            }
+            .thumb-icon {
+                font-size: clamp(50px, 8vw, 70px);
+            }
+            .event-management-form {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .event-management-form input[type="text"] {
+                margin-bottom: 10px;
+            }
+        }
+
+         @media (max-width: 480px) { 
+            h1#page-title-text { font-size: 28px; }
+            img#page-title-image { max-height: 50px; }
+
+            .event-grid {
+                grid-template-columns: repeat(2, 1fr); /* 2 columns on very small screens */
+                gap: 10px;
+            }
+            .event-button { border-radius: 8px; }
+            .event-button img { border-radius: 6px; }
+
+            .nav-action-button { font-size: 14px; padding: 10px; max-width: 90%; }
+            
+            .nav-action-button, .admin-button, .report-button, .home-button, .action-button, .save-events-button {
+                padding: 10px;
+                font-size: 14px;
+            }
+            .home-button {
+                width: 50px;
+                height: 38px;
+            }
+         }
+
+        @media print {
+            body * { visibility: hidden; }
+            .modal-content, .modal-content * { visibility: visible; }
+            .modal-content { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 15px; box-shadow: none; }
+            .close-btn, .modal-buttons { display: none; }
+            #feedback-summary, #feedback-summary * { visibility: visible; }
+            #feedback-summary { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 15px; }
+            .admin-header, .nav-buttons, .watermark, .admin-filters, .control-panel, header .admin-section:first-child .admin-header > div { display: none !important; }
+            /* Specific for new setup screen print */
+            .setup-screen.active, .setup-screen.active * { visibility: visible; }
+            .bottom-nav-buttons, .bottom-nav-buttons * { display: none !important; } /* Hide bottom buttons on print */
+            header { display: block !important; }
+            h1#page-title-text { display: block !important; visibility: visible; } /* Show default text title for print if needed */
+
+            .admin-screen, .feedback-screen, .setup-screen { display: block !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <!-- Title will be dynamically set (text or image) -->
+            <h1 id="page-title-text">House Colours Day Student Feedback</h1>
+            <img src="" alt="Event Title" id="page-title-image">
+        </header>
+        
+        <!-- Setup Screen (Event Grid) -->
+        <div class="screen setup-screen active" id="setup-screen">
+            <div class="event-grid-container">
+                <div class="event-grid" id="event-grid">
+                    <!-- Event buttons will be populated by JavaScript -->
+                </div>
+            </div>
+            <div class="voice-feedback-section">
+                <label for="voice-feedback">Enable Voice Feedback:</label>
+                <input type="checkbox" id="voice-feedback" checked tabindex="0">
+            </div>
+            <div class="bottom-nav-buttons">
+                <button class="nav-action-button" id="start-feedback-session-dummy" style="display:none;">Start Feedback Session</button> <!-- Dummy, actual start is via grid -->
+                <button class="nav-action-button admin-button-style" id="admin-login-setup-button">Admin Login / Configure Events</button>
+            </div>
+        </div>
+        
+        <!-- Feedback Screen -->
+        <div class="screen feedback-screen" id="feedback-screen">
+            <div class="feedback-content">
+                <!-- The H1/IMG in the main header above will be used -->
+                <h2 id="feedback-screen-subtitle">Student Feedback</h2>
+                <div class="feedback-confirmation" id="feedback-confirmation">Feedback Recorded!</div>
+                <div class="feedback-buttons">
+                    <button class="feedback-button thumbs-up" id="thumbs-up-button">
+                        <span class="thumb-icon">👍</span>
+                        <span class="feedback-text">Great Job!</span>
+                    </button>
+                    <button class="feedback-button thumbs-down" id="thumbs-down-button">
+                        <span class="thumb-icon">👎</span>
+                        <span class="feedback-text">Needs Work</span>
+                    </button>
+                </div>
+                <div class="summary-bar">
+                    <div class="counter">
+                        <span class="thumbs-icon">👍</span>
+                        <span id="positive-count">0</span>
+                    </div>
+                    <div class="thermometer">
+                        <div class="thermometer-fill" id="thermometer-fill" style="width: 50%;"></div>
+                    </div>
+                    <div class="counter">
+                        <span class="thumbs-icon">👎</span>
+                        <span id="negative-count">0</span>
+                    </div>
+                </div>
+                <div class="control-panel">
+                    <button class="admin-button tooltip" id="admin-button" data-tooltip="View dashboard and export data">Admin</button>
+                    <button class="report-button tooltip" id="report-button" data-tooltip="View feedback report">View Report</button>
+                    <button class="home-button" id="home-button" title="Home">
+                        <svg class="home-icon" viewBox="0 0 24 24">
+                            <path d="M12 2.5l-10 9h3v8h14v-8h3l-10-9zm0 2.828l6 5.4v7.272h-12v-7.272l6-5.4z"/>
+                        </svg>
+                    </button>
+                    <div class="sync-status">
+                        <span class="sync-icon online" id="sync-icon">🟢</span>
+                        <span id="sync-text">Online</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Admin Screen -->
+        <div class="screen admin-screen" id="admin-screen">
+            <div class="admin-header">
+                <h2>Admin Dashboard</h2>
+                <div>
+                    <!-- Buttons moved into sections for clarity -->
+                </div>
+            </div>
+
+            <div class="admin-section">
+                <h3>Manage Events</h3>
+                <p>Event list is now managed by the hardcoded grid. To change events, update the 'appEvents' array in the JavaScript code.</p>
+                <!-- Event Management Form Removed as events are hardcoded in JS for the grid -->
+            </div>
+
+            <div class="admin-section">
+                <h3>Feedback Data Management</h3>
+                 <div> 
+                    <button class="export-button" id="export-button">Export Data (CSV)</button>
+                    <button class="save-pdf-button" id="save-pdf-button">Save/Print Summary as PDF</button>
+                    <button class="reset-button" id="reset-button">Reset All Feedback Data</button>
+                </div>
+            </div>
+            
+            <div class="admin-section">
+                <h3>Feedback Analysis</h3>
+                <div class="admin-filters">
+                    <label for="filter-event">Filter by Event:</label>
+                    <select id="filter-event" tabindex="0">
+                        <option value="">All Events</option>
+                    </select>
+                    <label for="date-from">From:</label>
+                    <input type="date" id="date-from" tabindex="0">
+                    <label for="date-to">To:</label>
+                    <input type="date" id="date-to" tabindex="0">
+                </div>
+                <div id="feedback-summary">
+                    <h3>Feedback Summary Table & Charts</h3>
+                    <div class="charts-container" id="charts-container"></div>
+                    <div class="data-table-container">
+                        <table class="data-table" id="summary-table">
+                            <thead>
+                                <tr>
+                                    <th>Event</th>
+                                    <th>👍 Count</th>
+                                    <th>👎 Count</th>
+                                    <th>Total</th>
+                                    <th>👍 %</th>
+                                </tr>
+                            </thead>
+                            <tbody id="summary-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="nav-buttons">
+                <button class="home-button" id="back-from-admin" title="Home">
+                    <svg class="home-icon" viewBox="0 0 24 24">
+                        <path d="M12 2.5l-10 9h3v8h14v-8h3l-10-9zm0 2.828l6 5.4v7.272h-12v-7.272l6-5.4z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modals: Admin Login, Report, Error, Tutorial -->
+    <div class="modal" id="admin-modal">
+        <div class="modal-content">
+            <h3 class="modal-title">Admin Login</h3>
+            <input type="password" class="modal-input" id="admin-password" placeholder="Enter password" tabindex="0">
+            <div class="modal-buttons">
+                <button class="modal-button cancel-button" id="cancel-admin" tabindex="0">Cancel</button>
+                <button class="modal-button confirm-button" id="confirm-admin" tabindex="0">Login</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal" id="report-modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeReportModal()" tabindex="0">×</span>
+            <h3 class="modal-title">Feedback Report</h3>
+            <div class="report-chart">
+                <canvas id="feedback-chart"></canvas>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-button" style="background-color: #007aff; color: white;" onclick="saveReportAsPDF()" tabindex="0">Save as PDF</button>
+                <button class="modal-button" style="background-color: #6b7280; color: white;" onclick="printReport()" tabindex="0">Print</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal" id="error-modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="document.getElementById('error-modal').style.display='none'" tabindex="0">×</span>
+            <h3 class="modal-title">Notice</h3>
+            <p id="error-message"></p>
+            <div class="modal-buttons">
+                <button class="modal-button confirm-button" onclick="document.getElementById('error-modal').style.display='none'" tabindex="0">OK</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal" id="tutorial-modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="skipTutorial()" tabindex="0">×</span>
+            <h3 class="modal-title">Welcome to House Colours Feedback</h3>
+            <p>1. Tap an event image to start giving feedback.<br>2. Tap thumbs up or down.<br>3. Use Admin to view reports.</p>
+            <div class="modal-buttons">
+                <button class="modal-button confirm-button" onclick="skipTutorial()" tabindex="0">Got It!</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Hidden audio element for event sounds -->
+    <audio id="eventAudio" preload="auto"></audio>
+
+    <!-- Watermark -->
+    <div class="watermark">Scott Clee dev ©</div>
+
+    <script>
+        // Firebase Configuration - (Ensure this is correct)
+        const firebaseConfig = {
+            apiKey: "AIzaSyCqc96-YqWtMnE_2BmEGCqCvnAfYyDHCUI", // Replace with your actual API key
+            authDomain: "hcd-2-acb38.firebaseapp.com",
+            projectId: "hcd-2-acb38",
+            storageBucket: "hcd-2-acb38.firebasestorage.app",
+            messagingSenderId: "269350867387",
+            appId: "1:269350867387:web:ef32763113f29af41a349e",
+            measurementId: "G-ZNXJGFPQD5"
+        };
+
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.firestore();
+
+        // State management
+        const appState = {
+            currentEvent: '', // Holds the string name of the event
+            currentEventImage: '', // Holds the image filename for the current event
+            voiceFeedbackEnabled: true,
+            isOnline: true,
+            adminPassword: '1234', 
+            allFeedbackData: [], 
+            eventListeners: {},
+            // No longer need managedEventsList from Firebase for setup, events are hardcoded
+        };
+
+        // Hardcoded event data (image and event name for Firebase)
+        // IMPORTANT: Ensure filenames (incl. spaces and .png/.mp3) match your uploaded files EXACTLY
+        const appEvents = [
+            { name: "petting zoo", image: "petting zoo.png", audio: "petting zoo.mp3" },
+            { name: "Sensory Zone", image: "Sensory Zone.png", audio: "Sensory Zone.mp3" },
+            { name: "beanbag throw", image: "beanbag throw.png", audio: "beanbag throw.mp3" },
+            { name: "boccia", image: "boccia.png", audio: "boccia.mp3" },
+            { name: "ring toss", image: "ring toss.png", audio: "ring toss.mp3" },
+            { name: "pie face", image: "pie face.png", audio: "pie face.mp3" }
+        ];
+        
+        // DOM Elements
+        const pageTitleText = document.getElementById('page-title-text');
+        const pageTitleImage = document.getElementById('page-title-image');
+
+        const setupScreen = document.getElementById('setup-screen');
+        const feedbackScreen = document.getElementById('feedback-screen');
+        const adminScreen = document.getElementById('admin-screen');
+        const adminModal = document.getElementById('admin-modal');
+        const reportModal = document.getElementById('report-modal');
+        const errorModal = document.getElementById('error-modal');
+        const tutorialModal = document.getElementById('tutorial-modal');
+        
+        const eventGrid = document.getElementById('event-grid');
+        const voiceFeedbackCheckbox = document.getElementById('voice-feedback');
+        // const startButton = document.getElementById('start-feedback-session-dummy'); // No longer primary start
+        const adminLoginSetupButton = document.getElementById('admin-login-setup-button'); 
+        
+        const feedbackScreenSubtitle = document.getElementById('feedback-screen-subtitle'); // Was eventDisplay
+        const feedbackConfirmation = document.getElementById('feedback-confirmation');
+        
+        const thumbsUpButton = document.getElementById('thumbs-up-button');
+        const thumbsDownButton = document.getElementById('thumbs-down-button');
+        
+        const positiveCount = document.getElementById('positive-count');
+        const negativeCount = document.getElementById('negative-count');
+        const thermometerFill = document.getElementById('thermometer-fill');
+        
+        const adminButtonFeedbackScreen = document.getElementById('admin-button'); // On feedback screen
+        const reportButton = document.getElementById('report-button');
+        const homeButton = document.getElementById('home-button'); // On feedback screen
+        const backFromAdminButton = document.getElementById('back-from-admin');
+        const exportButton = document.getElementById('export-button');
+        const savePdfButton = document.getElementById('save-pdf-button');
+        const resetButton = document.getElementById('reset-button');
+        
+        const syncIcon = document.getElementById('sync-icon');
+        const syncText = document.getElementById('sync-text');
+        
+        const adminPasswordInput = document.getElementById('admin-password');
+        const cancelAdmin = document.getElementById('cancel-admin');
+        const confirmAdmin = document.getElementById('confirm-admin');
+        
+        const filterEvent = document.getElementById('filter-event'); 
+        const dateFrom = document.getElementById('date-from');
+        const dateTo = document.getElementById('date-to');
+        
+        const summaryBody = document.getElementById('summary-body');
+        const chartsContainer = document.getElementById('charts-container');
+
+        const eventAudioElement = document.getElementById('eventAudio');
+        let audioPlayedOnceForEvent = false;
+
+
+        let feedbackChart = null;
+        let miniCharts = [];
+        let isSubmitting = false; // For thumbs up/down
+        let isNavigating = false; // For event button clicks
+        let currentScreenForAdminLogin = setupScreen; 
+
+        Chart.register(ChartDataLabels);
+        
+        function showDefaultHeader() {
+            pageTitleText.style.display = 'block';
+            pageTitleImage.style.display = 'none';
+            pageTitleImage.src = '';
+            pageTitleImage.alt = '';
+        }
+
+        function showEventHeader(imageFilename, eventName) {
+            pageTitleText.style.display = 'none';
+            pageTitleImage.style.display = 'block';
+            pageTitleImage.src = imageFilename; // Make sure this path is correct
+            pageTitleImage.alt = eventName + " Feedback";
+        }
+
+        function populateEventGrid() {
+            eventGrid.innerHTML = ''; // Clear existing grid items
+            appEvents.forEach(event => {
+                const button = document.createElement('button');
+                button.className = 'event-button';
+                button.dataset.eventName = event.name; // For Firebase
+                button.dataset.eventImage = event.image;
+                button.dataset.eventAudio = event.audio;
+                button.setAttribute('aria-label', `Select ${event.name} event`);
+
+                const img = document.createElement('img');
+                img.src = event.image; // Make sure this path is correct
+                img.alt = event.name;
+                
+                button.appendChild(img);
+                button.addEventListener('click', handleEventButtonClick);
+                eventGrid.appendChild(button);
+            });
+        }
+
+        async function handleEventButtonClick(clickEvent) {
+            if (isNavigating) return;
+            isNavigating = true;
+
+            const button = clickEvent.currentTarget;
+            appState.currentEvent = button.dataset.eventName;
+            appState.currentEventImage = button.dataset.eventImage;
+            const audioFile = button.dataset.eventAudio;
+            
+            appState.voiceFeedbackEnabled = voiceFeedbackCheckbox.checked;
+
+            // Update header for feedback screen
+            showEventHeader(appState.currentEventImage, appState.currentEvent);
+            feedbackScreenSubtitle.textContent = "Student Feedback"; // Static subtitle
+
+            const navigateToFeedbackScreen = async () => {
+                await listenForEventFeedback(appState.currentEvent); 
+                switchScreen(setupScreen, feedbackScreen);
+                isNavigating = false;
+            };
+
+            if (eventAudioElement && audioFile) {
+                eventAudioElement.src = audioFile; // Set the source for the current event's audio
+                audioPlayedOnceForEvent = false; // Reset for this new event interaction
+
+                if (!audioPlayedOnceForEvent) {
+                    const playPromise = eventAudioElement.play();
+                    audioPlayedOnceForEvent = true;
+
+                    if (playPromise !== undefined) {
+                        playPromise.then(_ => {
+                            console.log(`Audio for ${appState.currentEvent} started.`);
+                            eventAudioElement.onended = navigateToFeedbackScreen;
+                        }).catch(error => {
+                            console.warn(`Could not play audio for ${appState.currentEvent}:`, error);
+                            navigateToFeedbackScreen(); // Navigate even if audio fails
+                        });
+                    } else {
+                        navigateToFeedbackScreen(); // Navigate if playPromise not supported
+                    }
+                } else {
+                     navigateToFeedbackScreen(); // Navigate if audio already played (shouldn't happen with reset flag)
+                }
+            } else {
+                console.warn("Event audio element or audio file not defined for " + appState.currentEvent);
+                navigateToFeedbackScreen(); // Navigate if no audio
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', async function() {
+            if (!localStorage.getItem('tutorialShown')) {
+                tutorialModal.style.display = 'flex';
+            } else {
+                 tutorialModal.style.display = 'none';
+            }
+            
+            populateEventGrid();
+            showDefaultHeader(); // Show text header on initial load of setup screen
+
+            adminLoginSetupButton.addEventListener('click', function() { 
+                currentScreenForAdminLogin = setupScreen; 
+                adminModal.style.display = 'flex';
+                adminPasswordInput.focus();
+            });
+            
+            thumbsUpButton.addEventListener('click', function() {
+                if (isSubmitting) return;
+                isSubmitting = true;
+                thumbsUpButton.classList.add('burst-up');
+                setTimeout(() => thumbsUpButton.classList.remove('burst-up'), 300);
+                recordFeedback(true);
+                setTimeout(() => isSubmitting = false, 500);
+            });
+            
+            thumbsDownButton.addEventListener('click', function() {
+                if (isSubmitting) return;
+                isSubmitting = true;
+                thumbsDownButton.classList.add('burst-down');
+                setTimeout(() => thumbsDownButton.classList.remove('burst-down'), 300);
+                recordFeedback(false);
+                setTimeout(() => isSubmitting = false, 500);
+            });
+            
+            adminButtonFeedbackScreen.addEventListener('click', function() { 
+                currentScreenForAdminLogin = feedbackScreen; 
+                adminModal.style.display = 'flex';
+                adminPasswordInput.focus();
+            });
+            
+            reportButton.addEventListener('click', function() {
+                if (!appState.currentEvent) {
+                    showErrorModal("No event feedback session active.");
+                    return;
+                }
+                showReportModal();
+            });
+            
+            homeButton.addEventListener('click', async function() {
+                switchScreen(feedbackScreen, setupScreen);
+                stopCurrentEventListener();
+                showDefaultHeader(); // Reset to text header
+                appState.currentEvent = '';
+                appState.currentEventImage = '';
+                positiveCount.textContent = '0';
+                negativeCount.textContent = '0';
+                thermometerFill.style.width = '50%';
+                isNavigating = false; // Reset navigation lock
+            });
+            
+            cancelAdmin.addEventListener('click', function() {
+                adminModal.style.display = 'none';
+                adminPasswordInput.value = '';
+            });
+            
+            confirmAdmin.addEventListener('click', async function() {
+                if (adminPasswordInput.value === appState.adminPassword) {
+                    adminModal.style.display = 'none';
+                    adminPasswordInput.value = '';
+                    showDefaultHeader(); // Show text header for admin screen
+                    await loadAllFeedbackForAdmin(); 
+                    // No need to load managed events from Firebase for setup screen anymore
+                    switchScreen(currentScreenForAdminLogin, adminScreen); 
+                } else {
+                    showErrorModal('Incorrect password');
+                }
+            });
+            
+            backFromAdminButton.addEventListener('click', async function() {
+                switchScreen(adminScreen, setupScreen); 
+                stopAllEventListeners(); 
+                showDefaultHeader(); // Show text header on setup screen
+                appState.currentEvent = ''; // Clear any active event context
+                filterEvent.value = ''; // Reset admin filters
+                dateFrom.value = '';
+                dateTo.value = '';
+                // No newEventNameInput or appState.managedEventsList to reset
+            });
+            
+            exportButton.addEventListener('click', function() { exportAllFeedbackToCSV(); });
+            savePdfButton.addEventListener('click', function() { saveSummaryAsPDF(); });
+            resetButton.addEventListener('click', function() { /* Reset logic */ 
+                 showErrorModal(
+                    'Are you sure you want to reset ALL feedback data? This action cannot be undone...',
+                    () => {
+                        const pwd = prompt("To confirm reset, please re-enter admin password:");
+                        if (pwd === appState.adminPassword) { resetAllData(); } 
+                        else if (pwd !== null) { showErrorModal("Password incorrect. Data not reset."); }
+                    }, null, true 
+                );
+            });
+            
+            filterEvent.addEventListener('change', updateSummaryTable);
+            dateFrom.addEventListener('change', updateSummaryTable);
+            dateTo.addEventListener('change', updateSummaryTable);
+
+            // Event management form related listeners are removed as events are hardcoded.
+            
+            adminModal.addEventListener('click', (e) => { if (e.target === adminModal) { adminModal.style.display = 'none'; adminPasswordInput.value = ''; }});
+            reportModal.addEventListener('click', (e) => { if (e.target === reportModal) closeReportModal(); });
+            errorModal.addEventListener('click', (e) => { if (e.target === errorModal) errorModal.style.display = 'none'; });
+            tutorialModal.addEventListener('click', (e) => { if (e.target === tutorialModal) skipTutorial(); });
+            
+            window.addEventListener('online', updateOnlineStatus);
+            window.addEventListener('offline', updateOnlineStatus);
+            updateOnlineStatus(); 
+
+            db.enablePersistence()
+              .catch((err) => {
+                  if (err.code == 'failed-precondition') console.warn('Firebase: Persistence failed (multiple tabs).');
+                  else if (err.code == 'unimplemented') console.warn('Firebase: Persistence not available.');
+              });
+        });
+        
+        // Helper Functions
+        function switchScreen(fromScreen, toScreen) {
+            if (fromScreen) fromScreen.classList.remove('active');
+            if (toScreen) toScreen.classList.add('active');
+        }
+        
+        async function recordFeedback(isPositive) {
+            if (!appState.currentEvent) {
+                showErrorModal("No event selected.");
+                return;
+            }
+            const feedbackEntry = {
+                event: appState.currentEvent, // Use string name
+                feedback: isPositive,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(), 
+                deviceID: getDeviceId()
+            };
+            
+            try {
+                await db.collection('feedbackEntries').add(feedbackEntry);
+                feedbackConfirmation.classList.add('show');
+                setTimeout(() => feedbackConfirmation.classList.remove('show'), 1000);
+                if (appState.voiceFeedbackEnabled && window.speechSynthesis) {
+                    const utteranceText = isPositive ? "Great job!" : "Umm, This needs work!";
+                    const utterance = new SpeechSynthesisUtterance(utteranceText);
+                    utterance.lang = 'en-GB';
+                    window.speechSynthesis.speak(utterance);
+                }
+            } catch (error) {
+                console.error("Error adding document: ", error);
+                showErrorModal("Failed to record feedback.");
+            }
+        }
+
+        function stopCurrentEventListener() {
+            if (appState.eventListeners['currentEventFeedback']) {
+                appState.eventListeners['currentEventFeedback'](); 
+                delete appState.eventListeners['currentEventFeedback'];
+            }
+        }
+
+        function stopAllEventListeners() {
+            stopCurrentEventListener(); // And any other global listeners if added later
+        }
+
+        async function listenForEventFeedback(eventName) {
+            stopCurrentEventListener(); 
+            if (!eventName) return;
+
+            appState.eventListeners['currentEventFeedback'] = db.collection('feedbackEntries')
+                .where('event', '==', eventName)
+                .onSnapshot(snapshot => {
+                    let positive = 0; let negative = 0;
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        if (data.feedback === true) positive++;
+                        else if (data.feedback === false) negative++;
+                    });
+                    updateCountersUI(positive, negative);
+                }, error => {
+                    console.error("Error listening to event feedback: ", error);
+                });
+        }
+
+        function updateCountersUI(positive, negative) {
+            positiveCount.textContent = positive;
+            negativeCount.textContent = negative;
+            const total = positive + negative;
+            const positivePercentage = total > 0 ? (positive / total) * 100 : 50;
+            thermometerFill.style.width = positivePercentage + '%'; 
+        }
+        
+        function updateOnlineStatus() { /* ... same as before ... */ 
+            appState.isOnline = navigator.onLine;
+            if (appState.isOnline) {
+                syncIcon.textContent = "🟢"; syncText.textContent = "Online"; syncIcon.className = "sync-icon online";
+            } else {
+                syncIcon.textContent = "🔴"; syncText.textContent = "Offline"; syncIcon.className = "sync-icon offline";
+                showErrorModal("You are offline. Feedback will sync when online.", null, 3000);
+            }
+        }
+
+        // loadManagedEventsFromFirebase & populateEventSelectDropdown are removed as setup is now grid-based.
+        // renderManagedEventsList, handleAddManagedEvent, handleRemoveManagedEvent, saveManagedEventsToFirebase are removed.
+        
+        async function loadAllFeedbackForAdmin() { /* ... same as before ... */ 
+            stopAllEventListeners();
+            try {
+                const snapshot = await db.collection('feedbackEntries').orderBy('timestamp', 'desc').get();
+                appState.allFeedbackData = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+                populateEventFilterForAdminTable(); 
+                updateSummaryTable(); 
+            } catch (error) {
+                console.error("Error fetching all feedback data: ", error);
+            }
+        }
+
+        function populateEventFilterForAdminTable() {  /* ... same as before, but source of events for filter is different */
+            // Populate from the hardcoded appEvents list if allFeedbackData is empty,
+            // otherwise, from unique events in allFeedbackData.
+            let eventsForFilter = new Set(appEvents.map(e => e.name));
+            if (appState.allFeedbackData.length > 0) {
+                eventsForFilter = new Set(appState.allFeedbackData.map(item => item.event));
+            }
+
+            const currentFilterValue = filterEvent.value; 
+            filterEvent.innerHTML = '<option value="">All Events</option>'; 
+            eventsForFilter.forEach(event => {
+                if (event) { 
+                    const option = document.createElement('option');
+                    option.value = event; option.textContent = event;
+                    filterEvent.appendChild(option);
+                }
+            });
+            if (Array.from(eventsForFilter).includes(currentFilterValue)) {
+                filterEvent.value = currentFilterValue;
+            }
+        }
+        
+        function updateSummaryTable() { /* ... same as before ... */ 
+            const filterEventValue = filterEvent.value;
+            const dateFromValue = dateFrom.value ? new Date(dateFrom.value).setHours(0,0,0,0) : null;
+            const dateToValue = dateTo.value ? new Date(dateTo.value).setHours(23,59,59,999) : null;
+
+            let filteredData = appState.allFeedbackData;
+
+            if (filterEventValue) {
+                filteredData = filteredData.filter(item => item.event === filterEventValue);
+            }
+            if (dateFromValue) {
+                filteredData = filteredData.filter(item => item.timestamp && item.timestamp.toDate && item.timestamp.toDate() >= new Date(dateFromValue));
+            }
+            if (dateToValue) {
+                filteredData = filteredData.filter(item => item.timestamp && item.timestamp.toDate && item.timestamp.toDate() <= new Date(dateToValue));
+            }
+
+            const eventCounts = {};
+            filteredData.forEach(item => {
+                if (!item.event) return; 
+                if (!eventCounts[item.event]) {
+                    eventCounts[item.event] = { positive: 0, negative: 0, entries: [] };
+                }
+                if (item.feedback === true) {
+                    eventCounts[item.event].positive++;
+                } else {
+                    eventCounts[item.event].negative++;
+                }
+                eventCounts[item.event].entries.push(item);
+            });
+            
+            summaryBody.innerHTML = '';
+            chartsContainer.innerHTML = '';
+            miniCharts.forEach(chart => chart.destroy());
+            miniCharts = [];
+            
+            Object.keys(eventCounts).sort().forEach(event => {
+                const item = eventCounts[event];
+                const total = item.positive + item.negative;
+                const percentage = total > 0 ? Math.round((item.positive / total) * 100) : 0;
+                
+                const chartWrapper = document.createElement('div');
+                chartWrapper.className = 'chart-wrapper';
+                const chartTitleEl = document.createElement('div'); // Renamed to avoid conflict
+                chartTitleEl.className = 'chart-title';
+                chartTitleEl.textContent = event;
+                const canvas = document.createElement('canvas');
+                canvas.className = 'mini-chart';
+                chartWrapper.appendChild(chartTitleEl);
+                chartWrapper.appendChild(canvas);
+                chartsContainer.appendChild(chartWrapper);
+                
+                const ctx = canvas.getContext('2d');
+                const miniChart = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['👍', '👎'],
+                        datasets: [{
+                            data: [item.positive, item.negative],
+                            backgroundColor: ['#34c759', '#ff3b30'],
+                            borderColor: ['#ffffff', '#ffffff'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true, 
+                        maintainAspectRatio: false, 
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { enabled: true,
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.label}: ${context.raw}`;
+                                    }
+                                }
+                            },
+                            datalabels: {
+                                color: '#ffffff',
+                                formatter: (value, context) => {
+                                    const sum = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                    const percentageVal = sum > 0 ? (value / sum * 100).toFixed(0) + '%' : (value > 0 ? '100%' : '0%'); 
+                                    return value > 0 ? percentageVal : ''; 
+                                },
+                                font: { size: 10, weight: 'bold' }
+                            }
+                        }
+                    }
+                });
+                miniCharts.push(miniChart);
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${event}</td>
+                    <td>${item.positive}</td>
+                    <td>${item.negative}</td>
+                    <td>${total}</td>
+                    <td>${percentage}%</td>
+                `;
+                summaryBody.appendChild(row);
+            });
+        }
+        
+        function exportAllFeedbackToCSV() { /* ... same as before ... */ 
+            if (appState.allFeedbackData.length === 0) {
+                showErrorModal('No data to export.'); return;
+            }
+            let csvContent = 'Event,Feedback,Timestamp,Device ID\n'; 
+            appState.allFeedbackData.forEach(entry => {
+                const feedbackText = entry.feedback ? 'Positive' : 'Negative';
+                const timestampStr = entry.timestamp && entry.timestamp.toDate ? entry.timestamp.toDate().toISOString() : 'N/A';
+                const eventName = entry.event ? entry.event.replace(/"/g, '""') : 'N/A';
+                csvContent += `"${eventName}","${feedbackText}","${timestampStr}","${entry.deviceID || 'N/A'}"\n`;
+            });
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `house_colours_all_feedback_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+        
+        async function resetAllData() { /* ... same as before ... */ 
+             showErrorModal("Resetting data... Please wait.", null, 0); 
+            try {
+                const snapshot = await db.collection('feedbackEntries').get();
+                if (snapshot.empty) {
+                    showErrorModal('No data to reset.'); return;
+                }
+                const batch = db.batch();
+                snapshot.docs.forEach(doc => { batch.delete(doc.ref); });
+                await batch.commit();
+                appState.allFeedbackData = []; 
+                updateSummaryTable(); 
+                if (appState.currentEvent) { 
+                    await listenForEventFeedback(appState.currentEvent);
+                }
+                showErrorModal('All feedback data has been reset.');
+            } catch (error) {
+                console.error("Error resetting data: ", error);
+            }
+        }
+        
+        function saveSummaryAsPDF() { /* ... same as before ... */
+            if (summaryBody.innerHTML.trim() === '' && chartsContainer.innerHTML.trim() === '') { 
+                 showErrorModal('No summary data for PDF.'); return;
+            }
+            const element = document.getElementById('feedback-summary');
+            const opt = {
+                margin: [0.5, 0.5, 0.5, 0.5], 
+                filename: `feedback_summary_${new Date().toISOString().split('T')[0]}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, scrollY: -window.scrollY },
+                jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' }
+            };
+            const feedbackMgmtButtons = document.querySelector('.admin-section:nth-child(2) > div'); 
+            const originalDisplayFeedback = feedbackMgmtButtons ? feedbackMgmtButtons.style.display : '';
+            if(feedbackMgmtButtons) feedbackMgmtButtons.style.display = 'none';
+
+            html2pdf().from(element).set(opt).save().then(() => {
+                if(feedbackMgmtButtons) feedbackMgmtButtons.style.display = originalDisplayFeedback;
+            }).catch(err => {
+                console.error("PDF error: ", err);
+                if(feedbackMgmtButtons) feedbackMgmtButtons.style.display = originalDisplayFeedback;
+            });
+        }
+        
+        function showReportModal() { /* ... Uses appState.currentEvent and currentEventImage ... */
+            if (!appState.currentEvent) {
+                showErrorModal("No active event."); return;
+            }
+            const currentPositive = parseInt(positiveCount.textContent) || 0;
+            const currentNegative = parseInt(negativeCount.textContent) || 0;
+            const total = currentPositive + currentNegative;
+            if (total === 0) {
+                showErrorModal('No feedback data for this event report.'); return;
+            }
+
+            const positivePercentage = (currentPositive / total) * 100;
+            const negativePercentage = (currentNegative / total) * 100;
+            const ctx = document.getElementById('feedback-chart').getContext('2d');
+            
+            if (feedbackChart) feedbackChart.destroy();
+            feedbackChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Thumbs Up', 'Thumbs Down'],
+                    datasets: [{
+                        label: 'Feedback %',
+                        data: [positivePercentage, negativePercentage],
+                        backgroundColor: ['#34c759', '#ff3b30'],
+                        borderColor: ['#ffffff', '#ffffff'],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { font: { family: "'Sassoon Primary', 'Comic Sans MS', Arial, sans-serif", size: 14 }}},
+                        title: {
+                            display: true,
+                            text: `Feedback for ${appState.currentEvent}`, // Using event name
+                            font: { family: "'Sassoon Primary', 'Comic Sans MS', Arial, sans-serif", size: 18 },
+                            color: '#1d1d1f'
+                        },
+                        tooltip: { callbacks: { label: context => `${context.label}: ${context.parsed.toFixed(1)}%` }, bodyFont: { family: "'Sassoon Primary', 'Comic Sans MS', Arial, sans-serif", size: 14 }},
+                        datalabels: {
+                            color: '#ffffff',
+                            formatter: (value) => value > 0 ? value.toFixed(1) + '%' : '', 
+                            font: { family: "'Sassoon Primary', 'Comic Sans MS', Arial, sans-serif", size: 14, weight: 'bold' }
+                        }
+                    }
+                }
+            });
+            reportModal.style.display = 'flex';
+        }
+        
+        function closeReportModal() { /* ... same as before ... */ 
+            reportModal.style.display = 'none';
+            if (feedbackChart) { feedbackChart.destroy(); feedbackChart = null; }
+        }
+        
+        function saveReportAsPDF() { /* ... Uses appState.currentEvent ... */
+            const reportContent = document.querySelector('#report-modal .modal-content');
+            const closeButtonInstance = reportContent.querySelector('.close-btn'); 
+            const originalCloseDisplay = closeButtonInstance ? closeButtonInstance.style.display : '';
+            if(closeButtonInstance) closeButtonInstance.style.display = 'none';
+            
+            const reportModalButtons = reportContent.querySelector('.modal-buttons');
+            const originalButtonsDisplay = reportModalButtons ? reportModalButtons.style.display : '';
+            if(reportModalButtons) reportModalButtons.style.display = 'none';
+
+            const opt = {
+                margin: 0.5,
+                filename: `feedback_report_${appState.currentEvent.replace(/ /g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, scrollY: -window.scrollY },
+                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+            };
+            html2pdf().from(reportContent).set(opt).save().then(() => {
+                if(closeButtonInstance) closeButtonInstance.style.display = originalCloseDisplay; 
+                if(reportModalButtons) reportModalButtons.style.display = originalButtonsDisplay;
+            }).catch(err => {
+                console.error("PDF report error: ", err);
+                 if(closeButtonInstance) closeButtonInstance.style.display = originalCloseDisplay;
+                if(reportModalButtons) reportModalButtons.style.display = originalButtonsDisplay;
+            });
+        }
+        
+        function printReport() { window.print(); }
+        
+        let errorModalTimeoutId = null; 
+        function showErrorModal(message, confirmCallback = null, autoDismissTimeout = null, isConfirmation = false) { /* ... same as before ... */ 
+            const errorMessageP = document.getElementById('error-message'); 
+            errorMessageP.textContent = message;
+            const confirmButton = errorModal.querySelector('.confirm-button');
+            const modalCloseButton = errorModal.querySelector('.close-btn'); 
+            const modalButtonsDiv = errorModal.querySelector('.modal-buttons');
+
+            if (errorModalTimeoutId) { clearTimeout(errorModalTimeoutId); errorModalTimeoutId = null; }
+            
+            let callbackHasRun = false; 
+            const dismiss = (confirmed = false) => {
+                errorModal.style.display='none';
+                if (confirmCallback && typeof confirmCallback === 'function' && !callbackHasRun && confirmed) {
+                    confirmCallback(); callbackHasRun = true; 
+                }
+                 if (errorModalTimeoutId) { clearTimeout(errorModalTimeoutId); errorModalTimeoutId = null; }
+            };
+            
+            if (isConfirmation) {
+                let cancelButton = modalButtonsDiv.querySelector('.cancel-button-error-modal');
+                if (!cancelButton) {
+                    cancelButton = document.createElement('button');
+                    cancelButton.classList.add('modal-button', 'cancel-button-error-modal'); 
+                    cancelButton.textContent = 'Cancel'; cancelButton.style.backgroundColor = '#ff3b30'; 
+                    cancelButton.style.color = 'white';
+                    modalButtonsDiv.insertBefore(cancelButton, confirmButton); 
+                }
+                cancelButton.style.display = 'inline-block';
+                cancelButton.onclick = () => dismiss(false);
+                confirmButton.textContent = 'Confirm'; 
+            } else {
+                let cancelButton = modalButtonsDiv.querySelector('.cancel-button-error-modal');
+                if (cancelButton) cancelButton.style.display = 'none';
+                confirmButton.textContent = 'OK'; 
+            }
+
+            confirmButton.onclick = () => dismiss(true); 
+            modalCloseButton.onclick = () => dismiss(false); 
+            errorModal.style.display = 'flex';
+
+            if (autoDismissTimeout && autoDismissTimeout > 0 && !isConfirmation) { 
+                errorModalTimeoutId = setTimeout(() => {
+                    if (errorModal.style.display === 'flex') { dismiss(false); }
+                }, autoDismissTimeout);
+            }
+        }
+        
+        function skipTutorial() { /* ... same as before ... */ 
+            tutorialModal.style.display = 'none';
+            localStorage.setItem('tutorialShown', 'true');
+        }
+        
+        function getDeviceId() { /* ... same as before ... */ 
+            let deviceId = localStorage.getItem('deviceId');
+            if (!deviceId) {
+                deviceId = 'Device-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 7);
+                localStorage.setItem('deviceId', deviceId);
+            }
+            return deviceId;
+        }
+        
+        // gk_isXlsx related functions (not directly used by core app logic but part of original file)
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) { return cell !== '' && cell != null; }
+        function loadFileData(filename) {
+            if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+                try {
+                    var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                    var firstSheetName = workbook.SheetNames[0];
+                    var worksheet = workbook.Sheets[firstSheetName];
+                    var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                    var filteredData = jsonData.filter(row => row.some(filledCell));
+                    var headerRowIndex = filteredData.findIndex((row, index) =>
+                    row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                    );
+                    if (headerRowIndex === -1 || headerRowIndex > 25) headerRowIndex = 0;
+                    var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex));
+                    csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                    return csv;
+                } catch (e) { console.error(e); return ""; }
+            }
+            return gk_fileData[filename] || "";
+        }
+    </script>
+</body>
+</html>
