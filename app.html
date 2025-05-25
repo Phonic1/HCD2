@@ -47,7 +47,7 @@
             margin: 0;
         }
         img#page-title-image {
-            max-height: 80px; /* Adjust as needed */
+            max-height: 160px; /* MODIFIED: Doubled from 80px */
             width: auto;
             margin: 0 auto;
             display: none; /* Hidden by default, shown on feedback screen */
@@ -134,7 +134,6 @@
             width: 100%;  /* Image takes full width of button */
             height: 100%; /* Image takes full height of button */
             object-fit: cover; /* Cover the button area, might crop */
-            /* object-fit: contain; /* Show whole image, might leave space */
             display: block;
             border-radius: 10px; /* Slightly less than button for inset look */
         }
@@ -195,7 +194,7 @@
             transform: translateY(-1px);
         }
 
-        /* Feedback Screen specific styling - largely the same */
+        /* Feedback Screen specific styling */
         .feedback-screen {
             text-align: center;
             flex: 1;
@@ -226,32 +225,41 @@
             display: flex;
             justify-content: center;
             margin-top: 20px;
-            gap: 10px;
+            gap: 10px; /* Maintained gap */
         }
 
-        .feedback-button {
-            width: clamp(150px, 25vw, 200px);
-            height: clamp(150px, 25vw, 200px);
+        .feedback-button { /* MODIFIED: Styled like event-button */
+            width: clamp(150px, 25vw, 200px); /* Kept original width clamp */
+            aspect-ratio: 1 / 1; /* NEW: Makes button square based on width */
             border-radius: 12px;
             border: none;
+            padding: 0; /* NEW: Ensure no padding interferes with image */
+            background-color: transparent; /* NEW: Transparent background */
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            color: white;
-            font-weight: 500;
-            position: relative;
-            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* From event-button */
+            position: relative; /* Kept for burst animation */
+            overflow: hidden; /* Kept */
             tabindex: 0;
+            transition: transform 0.2s, box-shadow 0.2s; /* NEW: From event-button */
         }
 
-        .feedback-button:hover {
-            transform: translateY(-1px);
+        .feedback-button img { /* NEW: Style for image inside feedback button */
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* or contain depending on asset aspect ratio */
+            display: block;
+            border-radius: 10px; /* Slightly less than button for inset look, same as event-button img */
+        }
+        
+        .feedback-button:hover { /* MODIFIED: Copied from .event-button:hover */
+            transform: translateY(-3px) scale(1.03);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
         }
 
-        .feedback-button:active {
+        .feedback-button:active { /* Kept original :active, as it's a specific feedback animation */
             animation: buttonPress 0.3s ease;
         }
 
@@ -288,22 +296,10 @@
             100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
         }
 
-        .thumbs-up {
-            background-color: #2ba648;
-        }
+        /* .thumbs-up background-color removed as button is transparent */
+        /* .thumbs-down background-color removed as button is transparent */
 
-        .thumbs-down {
-            background-color: #e32b22;
-        }
-
-        .thumb-icon {
-            font-size: clamp(60px, 10vw, 80px);
-            margin-bottom: 15px;
-        }
-
-        .feedback-text {
-            font-size: clamp(18px, 3vw, 24px);
-        }
+        /* .thumb-icon and .feedback-text CSS removed as they are no longer used in buttons */
 
         .feedback-confirmation {
             position: absolute;
@@ -413,8 +409,6 @@
             transform: translateY(-1px);
         }
         
-        /* ... other existing styles for admin screen, modals etc. remain largely the same ... */
-        /* Ensure to check media queries for the new grid and bottom buttons */
         .tooltip::after {
             content: attr(data-tooltip);
             position: absolute;
@@ -777,7 +771,7 @@
         
         @media (max-width: 768px) {
             h1#page-title-text { font-size: 32px; }
-            img#page-title-image { max-height: 60px; }
+            img#page-title-image { max-height: 120px; } /* MODIFIED: Doubled from 60px */
             h2 { font-size: 26px; }
             h3 { font-size: 20px; }
 
@@ -788,7 +782,6 @@
             }
             .nav-action-button { max-width: 300px; }
 
-            /* ... other responsive adjustments ... */
              .report-chart {
                 max-width: 100%; /* Full width on small screens */
             }
@@ -824,13 +817,12 @@
                 flex-direction: column; 
                 gap: 15px;
             }
-            .feedback-button {
+            .feedback-button { /* MODIFIED: Ensure it's square */
                  width: clamp(180px, 50vw, 220px); 
-                 height: clamp(120px, 30vw, 150px);
+                 /* height is now determined by aspect-ratio: 1/1 */
             }
-            .thumb-icon {
-                font-size: clamp(50px, 8vw, 70px);
-            }
+            /* .thumb-icon media query removed as it's no longer used */
+
             .event-management-form {
                 flex-direction: column;
                 align-items: stretch;
@@ -842,7 +834,7 @@
 
          @media (max-width: 480px) { 
             h1#page-title-text { font-size: 28px; }
-            img#page-title-image { max-height: 50px; }
+            img#page-title-image { max-height: 100px; } /* MODIFIED: Doubled from 50px */
 
             .event-grid {
                 grid-template-columns: repeat(2, 1fr); /* 2 columns on very small screens */
@@ -861,6 +853,7 @@
                 width: 50px;
                 height: 38px;
             }
+            /* Feedback button size will be handled by its clamp and aspect-ratio */
          }
 
         @media print {
@@ -913,13 +906,12 @@
                 <h2 id="feedback-screen-subtitle">Student Feedback</h2>
                 <div class="feedback-confirmation" id="feedback-confirmation">Feedback Recorded!</div>
                 <div class="feedback-buttons">
+                    <!-- MODIFIED: Feedback buttons now contain images -->
                     <button class="feedback-button thumbs-up" id="thumbs-up-button">
-                        <span class="thumb-icon">👍</span>
-                        <span class="feedback-text">Great Job!</span>
+                        <img src="Thumbs up.png" alt="Thumbs Up">
                     </button>
                     <button class="feedback-button thumbs-down" id="thumbs-down-button">
-                        <span class="thumb-icon">👎</span>
-                        <span class="feedback-text">Needs Work</span>
+                        <img src="Thumbs down.png" alt="Thumbs Down">
                     </button>
                 </div>
                 <div class="summary-bar">
@@ -1097,18 +1089,17 @@
             adminPassword: '1234', 
             allFeedbackData: [], 
             eventListeners: {},
-            // No longer need managedEventsList from Firebase for setup, events are hardcoded
         };
 
-        // Hardcoded event data (image and event name for Firebase)
-        // IMPORTANT: Ensure filenames (incl. spaces and .png/.mp3) match your uploaded files EXACTLY
+        // Hardcoded event data
+        // MODIFIED: Added likedAudio and dislikedAudio properties
         const appEvents = [
-            { name: "petting zoo", image: "petting zoo.png", audio: "petting zoo.mp3" },
-            { name: "Sensory Zone", image: "Sensory Zone.png", audio: "Sensory Zone.mp3" },
-            { name: "beanbag throw", image: "beanbag throw.png", audio: "beanbag throw.mp3" },
-            { name: "boccia", image: "boccia.png", audio: "boccia.mp3" },
-            { name: "ring toss", image: "ring toss.png", audio: "ring toss.mp3" },
-            { name: "pie face", image: "pie face.png", audio: "pie face.mp3" }
+            { name: "petting zoo", image: "petting zoo.png", audio: "petting zoo.mp3", likedAudio: "I liked the Petting zoo.mp3", dislikedAudio: "I didn't like the Petting zoo.mp3" },
+            { name: "Sensory Zone", image: "Sensory Zone.png", audio: "Sensory Zone.mp3", likedAudio: "I liked the Sensory Zone.mp3", dislikedAudio: "I didn't like the Sensory Zone.mp3" },
+            { name: "beanbag throw", image: "beanbag throw.png", audio: "beanbag throw.mp3", likedAudio: "I liked Beanbag throw.mp3", dislikedAudio: "I didn't like Beanbag throw.mp3" },
+            { name: "boccia", image: "boccia.png", audio: "boccia.mp3", likedAudio: "I liked Boccia.mp3", dislikedAudio: "I didn't like Boccia.mp3" },
+            { name: "ring toss", image: "ring toss.png", audio: "ring toss.mp3", likedAudio: "I liked Ring toss.mp3", dislikedAudio: "I didn't like Ring toss.mp3" },
+            { name: "pie face", image: "pie face.png", audio: "pie face.mp3", likedAudio: "I liked Pie Face.mp3", dislikedAudio: "I didn't like Pie Face.mp3" }
         ];
         
         // DOM Elements
@@ -1125,10 +1116,9 @@
         
         const eventGrid = document.getElementById('event-grid');
         const voiceFeedbackCheckbox = document.getElementById('voice-feedback');
-        // const startButton = document.getElementById('start-feedback-session-dummy'); // No longer primary start
         const adminLoginSetupButton = document.getElementById('admin-login-setup-button'); 
         
-        const feedbackScreenSubtitle = document.getElementById('feedback-screen-subtitle'); // Was eventDisplay
+        const feedbackScreenSubtitle = document.getElementById('feedback-screen-subtitle');
         const feedbackConfirmation = document.getElementById('feedback-confirmation');
         
         const thumbsUpButton = document.getElementById('thumbs-up-button');
@@ -1138,9 +1128,9 @@
         const negativeCount = document.getElementById('negative-count');
         const thermometerFill = document.getElementById('thermometer-fill');
         
-        const adminButtonFeedbackScreen = document.getElementById('admin-button'); // On feedback screen
+        const adminButtonFeedbackScreen = document.getElementById('admin-button');
         const reportButton = document.getElementById('report-button');
-        const homeButton = document.getElementById('home-button'); // On feedback screen
+        const homeButton = document.getElementById('home-button');
         const backFromAdminButton = document.getElementById('back-from-admin');
         const exportButton = document.getElementById('export-button');
         const savePdfButton = document.getElementById('save-pdf-button');
@@ -1166,8 +1156,8 @@
 
         let feedbackChart = null;
         let miniCharts = [];
-        let isSubmitting = false; // For thumbs up/down
-        let isNavigating = false; // For event button clicks
+        let isSubmitting = false; 
+        let isNavigating = false; 
         let currentScreenForAdminLogin = setupScreen; 
 
         Chart.register(ChartDataLabels);
@@ -1182,22 +1172,22 @@
         function showEventHeader(imageFilename, eventName) {
             pageTitleText.style.display = 'none';
             pageTitleImage.style.display = 'block';
-            pageTitleImage.src = imageFilename; // Make sure this path is correct
+            pageTitleImage.src = imageFilename; 
             pageTitleImage.alt = eventName + " Feedback";
         }
 
         function populateEventGrid() {
-            eventGrid.innerHTML = ''; // Clear existing grid items
+            eventGrid.innerHTML = ''; 
             appEvents.forEach(event => {
                 const button = document.createElement('button');
                 button.className = 'event-button';
-                button.dataset.eventName = event.name; // For Firebase
+                button.dataset.eventName = event.name; 
                 button.dataset.eventImage = event.image;
                 button.dataset.eventAudio = event.audio;
                 button.setAttribute('aria-label', `Select ${event.name} event`);
 
                 const img = document.createElement('img');
-                img.src = event.image; // Make sure this path is correct
+                img.src = event.image; 
                 img.alt = event.name;
                 
                 button.appendChild(img);
@@ -1217,9 +1207,8 @@
             
             appState.voiceFeedbackEnabled = voiceFeedbackCheckbox.checked;
 
-            // Update header for feedback screen
             showEventHeader(appState.currentEventImage, appState.currentEvent);
-            feedbackScreenSubtitle.textContent = "Student Feedback"; // Static subtitle
+            feedbackScreenSubtitle.textContent = "Student Feedback"; 
 
             const navigateToFeedbackScreen = async () => {
                 await listenForEventFeedback(appState.currentEvent); 
@@ -1228,8 +1217,8 @@
             };
 
             if (eventAudioElement && audioFile) {
-                eventAudioElement.src = audioFile; // Set the source for the current event's audio
-                audioPlayedOnceForEvent = false; // Reset for this new event interaction
+                eventAudioElement.src = audioFile; 
+                audioPlayedOnceForEvent = false; 
 
                 if (!audioPlayedOnceForEvent) {
                     const playPromise = eventAudioElement.play();
@@ -1241,17 +1230,17 @@
                             eventAudioElement.onended = navigateToFeedbackScreen;
                         }).catch(error => {
                             console.warn(`Could not play audio for ${appState.currentEvent}:`, error);
-                            navigateToFeedbackScreen(); // Navigate even if audio fails
+                            navigateToFeedbackScreen(); 
                         });
                     } else {
-                        navigateToFeedbackScreen(); // Navigate if playPromise not supported
+                        navigateToFeedbackScreen(); 
                     }
                 } else {
-                     navigateToFeedbackScreen(); // Navigate if audio already played (shouldn't happen with reset flag)
+                     navigateToFeedbackScreen(); 
                 }
             } else {
                 console.warn("Event audio element or audio file not defined for " + appState.currentEvent);
-                navigateToFeedbackScreen(); // Navigate if no audio
+                navigateToFeedbackScreen(); 
             }
         }
         
@@ -1263,7 +1252,7 @@
             }
             
             populateEventGrid();
-            showDefaultHeader(); // Show text header on initial load of setup screen
+            showDefaultHeader(); 
 
             adminLoginSetupButton.addEventListener('click', function() { 
                 currentScreenForAdminLogin = setupScreen; 
@@ -1277,7 +1266,7 @@
                 thumbsUpButton.classList.add('burst-up');
                 setTimeout(() => thumbsUpButton.classList.remove('burst-up'), 300);
                 recordFeedback(true);
-                setTimeout(() => isSubmitting = false, 500);
+                setTimeout(() => isSubmitting = false, 500); // Allow time for audio to potentially start
             });
             
             thumbsDownButton.addEventListener('click', function() {
@@ -1286,7 +1275,7 @@
                 thumbsDownButton.classList.add('burst-down');
                 setTimeout(() => thumbsDownButton.classList.remove('burst-down'), 300);
                 recordFeedback(false);
-                setTimeout(() => isSubmitting = false, 500);
+                setTimeout(() => isSubmitting = false, 500); // Allow time for audio to potentially start
             });
             
             adminButtonFeedbackScreen.addEventListener('click', function() { 
@@ -1306,13 +1295,17 @@
             homeButton.addEventListener('click', async function() {
                 switchScreen(feedbackScreen, setupScreen);
                 stopCurrentEventListener();
-                showDefaultHeader(); // Reset to text header
+                showDefaultHeader(); 
                 appState.currentEvent = '';
                 appState.currentEventImage = '';
                 positiveCount.textContent = '0';
                 negativeCount.textContent = '0';
                 thermometerFill.style.width = '50%';
-                isNavigating = false; // Reset navigation lock
+                isNavigating = false; 
+                if (eventAudioElement && !eventAudioElement.paused) { // Stop any playing audio
+                    eventAudioElement.pause();
+                    eventAudioElement.currentTime = 0;
+                }
             });
             
             cancelAdmin.addEventListener('click', function() {
@@ -1324,9 +1317,8 @@
                 if (adminPasswordInput.value === appState.adminPassword) {
                     adminModal.style.display = 'none';
                     adminPasswordInput.value = '';
-                    showDefaultHeader(); // Show text header for admin screen
+                    showDefaultHeader(); 
                     await loadAllFeedbackForAdmin(); 
-                    // No need to load managed events from Firebase for setup screen anymore
                     switchScreen(currentScreenForAdminLogin, adminScreen); 
                 } else {
                     showErrorModal('Incorrect password');
@@ -1336,17 +1328,16 @@
             backFromAdminButton.addEventListener('click', async function() {
                 switchScreen(adminScreen, setupScreen); 
                 stopAllEventListeners(); 
-                showDefaultHeader(); // Show text header on setup screen
-                appState.currentEvent = ''; // Clear any active event context
-                filterEvent.value = ''; // Reset admin filters
+                showDefaultHeader(); 
+                appState.currentEvent = ''; 
+                filterEvent.value = ''; 
                 dateFrom.value = '';
                 dateTo.value = '';
-                // No newEventNameInput or appState.managedEventsList to reset
             });
             
             exportButton.addEventListener('click', function() { exportAllFeedbackToCSV(); });
             savePdfButton.addEventListener('click', function() { saveSummaryAsPDF(); });
-            resetButton.addEventListener('click', function() { /* Reset logic */ 
+            resetButton.addEventListener('click', function() { 
                  showErrorModal(
                     'Are you sure you want to reset ALL feedback data? This action cannot be undone...',
                     () => {
@@ -1360,8 +1351,6 @@
             filterEvent.addEventListener('change', updateSummaryTable);
             dateFrom.addEventListener('change', updateSummaryTable);
             dateTo.addEventListener('change', updateSummaryTable);
-
-            // Event management form related listeners are removed as events are hardcoded.
             
             adminModal.addEventListener('click', (e) => { if (e.target === adminModal) { adminModal.style.display = 'none'; adminPasswordInput.value = ''; }});
             reportModal.addEventListener('click', (e) => { if (e.target === reportModal) closeReportModal(); });
@@ -1391,7 +1380,7 @@
                 return;
             }
             const feedbackEntry = {
-                event: appState.currentEvent, // Use string name
+                event: appState.currentEvent,
                 feedback: isPositive,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp(), 
                 deviceID: getDeviceId()
@@ -1401,11 +1390,27 @@
                 await db.collection('feedbackEntries').add(feedbackEntry);
                 feedbackConfirmation.classList.add('show');
                 setTimeout(() => feedbackConfirmation.classList.remove('show'), 1000);
-                if (appState.voiceFeedbackEnabled && window.speechSynthesis) {
-                    const utteranceText = isPositive ? "Great job!" : "Umm, This needs work!";
-                    const utterance = new SpeechSynthesisUtterance(utteranceText);
-                    utterance.lang = 'en-GB';
-                    window.speechSynthesis.speak(utterance);
+
+                // MODIFIED: Play specific MP3 based on event and feedback type
+                if (appState.voiceFeedbackEnabled) { // Controlled by the "Enable Voice Feedback" checkbox
+                    const currentEventData = appEvents.find(event => event.name === appState.currentEvent);
+                    if (currentEventData && eventAudioElement) {
+                        const audioFileToPlay = isPositive ? currentEventData.likedAudio : currentEventData.dislikedAudio;
+                        if (audioFileToPlay) {
+                            eventAudioElement.src = audioFileToPlay;
+                            const playPromise = eventAudioElement.play();
+                            if (playPromise !== undefined) {
+                                playPromise.catch(error => {
+                                    console.warn(`Could not play feedback audio '${audioFileToPlay}':`, error);
+                                    // Optionally show a subtle error or log, but don't block UI
+                                });
+                            }
+                        } else {
+                            console.warn(`Feedback audio file not defined for event '${appState.currentEvent}' and feedback type (positive: ${isPositive}).`);
+                        }
+                    } else {
+                        console.warn("Could not find current event data or audio element for feedback sound.");
+                    }
                 }
             } catch (error) {
                 console.error("Error adding document: ", error);
@@ -1421,7 +1426,7 @@
         }
 
         function stopAllEventListeners() {
-            stopCurrentEventListener(); // And any other global listeners if added later
+            stopCurrentEventListener(); 
         }
 
         async function listenForEventFeedback(eventName) {
@@ -1451,7 +1456,7 @@
             thermometerFill.style.width = positivePercentage + '%'; 
         }
         
-        function updateOnlineStatus() { /* ... same as before ... */ 
+        function updateOnlineStatus() { 
             appState.isOnline = navigator.onLine;
             if (appState.isOnline) {
                 syncIcon.textContent = "🟢"; syncText.textContent = "Online"; syncIcon.className = "sync-icon online";
@@ -1460,11 +1465,8 @@
                 showErrorModal("You are offline. Feedback will sync when online.", null, 3000);
             }
         }
-
-        // loadManagedEventsFromFirebase & populateEventSelectDropdown are removed as setup is now grid-based.
-        // renderManagedEventsList, handleAddManagedEvent, handleRemoveManagedEvent, saveManagedEventsToFirebase are removed.
         
-        async function loadAllFeedbackForAdmin() { /* ... same as before ... */ 
+        async function loadAllFeedbackForAdmin() { 
             stopAllEventListeners();
             try {
                 const snapshot = await db.collection('feedbackEntries').orderBy('timestamp', 'desc').get();
@@ -1476,12 +1478,11 @@
             }
         }
 
-        function populateEventFilterForAdminTable() {  /* ... same as before, but source of events for filter is different */
-            // Populate from the hardcoded appEvents list if allFeedbackData is empty,
-            // otherwise, from unique events in allFeedbackData.
+        function populateEventFilterForAdminTable() {  
             let eventsForFilter = new Set(appEvents.map(e => e.name));
             if (appState.allFeedbackData.length > 0) {
-                eventsForFilter = new Set(appState.allFeedbackData.map(item => item.event));
+                const feedbackEvents = new Set(appState.allFeedbackData.map(item => item.event).filter(Boolean));
+                feedbackEvents.forEach(event => eventsForFilter.add(event)); // Add events from feedback if not already in appEvents
             }
 
             const currentFilterValue = filterEvent.value; 
@@ -1498,7 +1499,7 @@
             }
         }
         
-        function updateSummaryTable() { /* ... same as before ... */ 
+        function updateSummaryTable() { 
             const filterEventValue = filterEvent.value;
             const dateFromValue = dateFrom.value ? new Date(dateFrom.value).setHours(0,0,0,0) : null;
             const dateToValue = dateTo.value ? new Date(dateTo.value).setHours(23,59,59,999) : null;
@@ -1541,7 +1542,7 @@
                 
                 const chartWrapper = document.createElement('div');
                 chartWrapper.className = 'chart-wrapper';
-                const chartTitleEl = document.createElement('div'); // Renamed to avoid conflict
+                const chartTitleEl = document.createElement('div'); 
                 chartTitleEl.className = 'chart-title';
                 chartTitleEl.textContent = event;
                 const canvas = document.createElement('canvas');
@@ -1600,7 +1601,7 @@
             });
         }
         
-        function exportAllFeedbackToCSV() { /* ... same as before ... */ 
+        function exportAllFeedbackToCSV() { 
             if (appState.allFeedbackData.length === 0) {
                 showErrorModal('No data to export.'); return;
             }
@@ -1623,7 +1624,7 @@
             URL.revokeObjectURL(url);
         }
         
-        async function resetAllData() { /* ... same as before ... */ 
+        async function resetAllData() { 
              showErrorModal("Resetting data... Please wait.", null, 0); 
             try {
                 const snapshot = await db.collection('feedbackEntries').get();
@@ -1644,7 +1645,7 @@
             }
         }
         
-        function saveSummaryAsPDF() { /* ... same as before ... */
+        function saveSummaryAsPDF() { 
             if (summaryBody.innerHTML.trim() === '' && chartsContainer.innerHTML.trim() === '') { 
                  showErrorModal('No summary data for PDF.'); return;
             }
@@ -1668,7 +1669,7 @@
             });
         }
         
-        function showReportModal() { /* ... Uses appState.currentEvent and currentEventImage ... */
+        function showReportModal() { 
             if (!appState.currentEvent) {
                 showErrorModal("No active event."); return;
             }
@@ -1702,7 +1703,7 @@
                         legend: { position: 'bottom', labels: { font: { family: "'Sassoon Primary', 'Comic Sans MS', Arial, sans-serif", size: 14 }}},
                         title: {
                             display: true,
-                            text: `Feedback for ${appState.currentEvent}`, // Using event name
+                            text: `Feedback for ${appState.currentEvent}`, 
                             font: { family: "'Sassoon Primary', 'Comic Sans MS', Arial, sans-serif", size: 18 },
                             color: '#1d1d1f'
                         },
@@ -1718,12 +1719,12 @@
             reportModal.style.display = 'flex';
         }
         
-        function closeReportModal() { /* ... same as before ... */ 
+        function closeReportModal() { 
             reportModal.style.display = 'none';
             if (feedbackChart) { feedbackChart.destroy(); feedbackChart = null; }
         }
         
-        function saveReportAsPDF() { /* ... Uses appState.currentEvent ... */
+        function saveReportAsPDF() { 
             const reportContent = document.querySelector('#report-modal .modal-content');
             const closeButtonInstance = reportContent.querySelector('.close-btn'); 
             const originalCloseDisplay = closeButtonInstance ? closeButtonInstance.style.display : '';
@@ -1753,7 +1754,7 @@
         function printReport() { window.print(); }
         
         let errorModalTimeoutId = null; 
-        function showErrorModal(message, confirmCallback = null, autoDismissTimeout = null, isConfirmation = false) { /* ... same as before ... */ 
+        function showErrorModal(message, confirmCallback = null, autoDismissTimeout = null, isConfirmation = false) { 
             const errorMessageP = document.getElementById('error-message'); 
             errorMessageP.textContent = message;
             const confirmButton = errorModal.querySelector('.confirm-button');
@@ -1800,12 +1801,12 @@
             }
         }
         
-        function skipTutorial() { /* ... same as before ... */ 
+        function skipTutorial() { 
             tutorialModal.style.display = 'none';
             localStorage.setItem('tutorialShown', 'true');
         }
         
-        function getDeviceId() { /* ... same as before ... */ 
+        function getDeviceId() { 
             let deviceId = localStorage.getItem('deviceId');
             if (!deviceId) {
                 deviceId = 'Device-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 7);
@@ -1814,7 +1815,6 @@
             return deviceId;
         }
         
-        // gk_isXlsx related functions (not directly used by core app logic but part of original file)
         var gk_isXlsx = false;
         var gk_xlsxFileLookup = {};
         var gk_fileData = {};
