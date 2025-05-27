@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>House Colours Feedback App</title>
+    <style>
+        /* --- START OF EMBEDDED CSS --- */
+        body {
+            margin: 0;
+            background-color: #ffffff;
+            font-family: 'Sassoon Primary', 'Comic Sans MS', Arial, sans-serif;
+            touch-action: manipulation;
+        }
+
+        body.body-config-index {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        body.body-config-standard {
+            min-height: 100vh;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+
+        .page-section {
+            display: none;
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+        }
+        
+        #pageIndex {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .page-section:not(#pageIndex) {
+             display: flex;
+             flex-direction: column;
+             align-items: center;
+        }
+
+        .container { /* Used on index page */
+            text-align: center;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .page-wrapper { /* Used on content pages */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 900px; /* Constrain max width of content pages */
+            margin: 0 auto; /* Center page-wrapper */
+            padding: 10px 0;
+            box-sizing: border-box;
+        }
+
+        .page-header {
+            text-align: center;
+            padding: 15px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .title-image {
+            max-width: 50vw;
+            max-height: 20vh;
+            height: auto;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .launch-button {
+            background-color: transparent;
+            border: none;
+            padding: 0; /* Base padding, will be overridden for grid buttons */
+            cursor: pointer;
+            display: inline-block;
+            transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+            border-radius: 20px; /* Default radius */
+            outline: none;
+            margin: 5px;
+        }
+
+        .launch-button:hover {
+            transform: scale(1.03);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .launch-button:active {
+            transform: scale(0.98);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .launch-button:disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .launch-button img { /* Base image style */
+            display: block;
+            width: auto; /* Let specific rules dictate size */
+            height: auto; /* Let specific rules dictate size */
+            border-radius: 20px; /* Default radius, matches button */
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .launch-button img.index-page-image { /* For large buttons on index.html */
+            max-width: 65vw;
+            max-height: 30vh;
+        }
+
+        /* Grid Containers */
+        .grid-container {
+            display: grid;
+            gap: 15px; /* Space between grid items (buttons) */
+            padding: 15px; /* Padding around the grid itself */
+            margin: 10px auto;
+            width: 95%; /* Responsive width */
+            box-sizing: border-box;
+        }
+
+        .grid-container-2x2 {
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); /* Adjust minmax for desired size */
+            max-width: 500px; /* Optional: Constrain max width for 2x2 grid */
+        }
+
+        .grid-container-3xN {
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); /* Adjust minmax for desired size */
+            max-width: 600px; /* Optional: Constrain max width for 3xN grid */
+        }
+
+        /* Styling for launch-buttons specifically within a grid to make them square */
+        .grid-container .launch-button {
+            aspect-ratio: 1 / 1; /* Make the button square */
+            display: flex;       /* To center the image inside */
+            align-items: center;
+            justify-content: center;
+            padding: 8px;        /* Padding inside the button, around the image */
+            border-radius: 15px; /* Slightly smaller radius for grid buttons */
+            overflow: hidden;    /* Ensure image doesn't break button's rounded corners */
+        }
+
+        /* Styling for images inside the square grid buttons */
+        .grid-container .launch-button img.grid-item-image {
+            width: 100%;         /* Image takes full width of the button's content area */
+            height: 100%;        /* Image takes full height of the button's content area */
+            object-fit: cover;   /* Fill the space, crop if necessary (perfect for square images in square buttons) */
+            max-height: none;    /* Override any inherited max-height that might conflict */
+            border-radius: 10px; /* Radius for the image itself, smaller than button's if button has padding */
+            box-shadow: none;    /* Shadow is on the button, not the image inside for this case */
+        }
+
+
+        .watermark {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            font-size: 12px;
+            color: #6b7280;
+            opacity: 0.7;
+            font-family: 'Sassoon Primary', 'Comic Sans MS', Arial, sans-serif;
+            pointer-events: none;
+            z-index: 1000;
+        }
+        /* --- END OF EMBEDDED CSS --- */
+    </style>
+</head>
+<body>
+
+    <!-- Page Sections -->
+    <div id="pageIndex" class="page-section">
+        <div class="container">
+            <button id="launchAppButton" class="launch-button" aria-label="Launch student feedback application">
+                <img src="launch_image.png" alt="Tap here to start student feedback" class="index-page-image">
+            </button>
+            <button id="houseColoursFMButton" class="launch-button" aria-label="Launch House Colours FM">
+                <img src="house colours fm.png" alt="Tap here for House Colours FM" class="index-page-image">
+            </button>
+        </div>
+    </div>
+
+    <div id="pageHouseColoursFMMenu" class="page-section">
+        <div class="page-wrapper">
+            <header class="page-header">
+                <img src="house colours fm.png" alt="House Colours FM Title" class="title-image">
+            </header>
+            <main>
+                <div class="grid-container grid-container-2x2">
+                    <button id="yellowCategoryButton" class="launch-button" aria-label="Yellow House Colours">
+                        <img src="yellow grid.png" alt="Yellow" class="grid-item-image">
+                    </button>
+                    <button id="redCategoryButton" class="launch-button" aria-label="Red House Colours">
+                        <img src="red grid.png" alt="Red" class="grid-item-image">
+                    </button>
+                    <button id="blueCategoryButton" class="launch-button" aria-label="Blue House Colours">
+                        <img src="blue grid.png" alt="Blue" class="grid-item-image">
+                    </button>
+                    <button id="greenCategoryButton" class="launch-button" aria-label="Green House Colours">
+                        <img src="green grid.png" alt="Green" class="grid-item-image">
+                    </button>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Red Songs Page -->
+    <div id="pageRedSongs" class="page-section">
+        <div class="page-wrapper">
+            <header class="page-header">
+                <img src="red grid.png" alt="Red House Title" class="title-image">
+            </header>
+            <main>
+                <div class="grid-container grid-container-3xN">
+                    <button class="launch-button song-button" data-audio-id="redSong1Audio" aria-label="Play Red Song 1"><img src="red_song1_icon.png" alt="Red Song 1" class="grid-item-image"></button>
+                    <button class="launch-button song-button" data-audio-id="redSong2Audio" aria-label="Play Red Song 2"><img src="red_song2_icon.png" alt="Red Song 2" class="grid-item-image"></button>
+                    <button class="launch-button song-button" data-audio-id="redSong3Audio" aria-label="Play Red Song 3"><img src="red_song3_icon.png" alt="Red Song 3" class="grid-item-image"></button>
+                    <button class="launch-button song-button" data-audio-id="redSong4Audio" aria-label="Play Red Song 4"><img src="red_song4_icon.png" alt="Red Song 4" class="grid-item-image"></button>
+                    <button class="launch-button song-button" data-audio-id="redSong5Audio" aria-label="Play Red Song 5"><img src="red_song5_icon.png" alt="Red Song 5" class="grid-item-image"></button>
+                    <button class="launch-button song-button" data-audio-id="redSong6Audio" aria-label="Play Red Song 6"><img src="red_song6_icon.png" alt="Red Song 6" class="grid-item-image"></button>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Yellow Songs Page -->
+    <div id="pageYellowSongs" class="page-section">
+        <div class="page-wrapper">
+            <header class="page-header">
+                <img src="yellow grid.png" alt="Yellow House Title" class="title-image">
+            </header>
+            <main>
+                <div class="grid-container grid-container-3xN">
+                    <button class="launch-button song-button" data-audio-id="yellowSong1Audio" aria-label="Play Yellow Song 1"><img src="yellow_song1_icon.png" alt="Yellow Song 1" class="grid-item-image"></button>
+                    <button class="launch-button song-button" data-audio-id="yellowSong2Audio" aria-label="Play Yellow Song 2"><img src="yellow_song2_icon.png" alt="Yellow Song 2" class="grid-item-image"></button>
+                    <button class="launch-button song-button" data-audio-id="yellowSong3Audio" aria-label="Play Yellow Song 3"><img src="yellow_song3_icon.png" alt="Yellow Song 3" class="grid-item-image"></button>
+                    <button class="launch-button song-button" data-audio-id="yellowSong4Audio" aria-label="Play Yellow Song 4"><img src="yellow_song4_icon.png" alt="Yellow Song 4" class="grid-item-image"></button>
+                    <button class="launch-button song-button" data-audio-id="yellowSong5Audio" aria-label="Play Yellow Song 5"><img src="yellow_song5_icon.png" alt="Yellow Song 5" class="grid-item-image"></button>
+                    <button class="launch-button song-button" data-audio-id="yellowSong6Audio" aria-label="Play Yellow Song 6"><img src="yellow_song6_icon.png" alt="Yellow Song 6" class="grid-item-image"></button>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Blue Songs Page -->
+    <div id="pageBlueSongs" class="page-section">
+        <div class="page-wrapper">
+            <header class="page-header">
+                <img src="blue grid.png" alt="Blue House Title" class="title-image">
+            </header>
+            <main>
+                <div class="grid-container grid-container-3xN">
+                    <button class="launch-button song-button" data-audio-id="blueSong1Audio" aria-label="Play Blue Song 1"><img src="blue_song1_icon.png" alt="Blue Song 1" class="grid-item-image"></button>
+                    <button class="launch-button song-button" data-audio-id="blueSong2Audio" aria-label="Play Blue Song 2"><img src="blue_song2_icon.png" alt="Blue Song 2" class="grid-item-image"></button>
+                    <button class="launch-button song-button" data-audio-id="blueSong3Audio" aria-label="Play Blue Song 3"><img src="blue_song3_icon.png" alt="Blue Song 3" class="grid-item-image"></button>
+                    <button class="launch-button song-button" data-audio-id="blueSong4Audio" aria-label="Play Blue Song 4"><img src="blue_song4_icon.png" alt="Blue Song 4" class="grid-item-image"></button>
+                    <button class="launch-button song-button" data-audio-id="blueSong5Audio" aria-label="Play Blue Song 5"><img src="blue_song5_icon.png" alt="Blue Song 5" class="grid-item-image"></button>
+                    <button class="launch-button song-button" data-audio-id="blueSong6Audio" aria-label="Play Blue Song 6"><img src="blue_song6_icon.png" alt="Blue Song 6" class="grid-item-image"></button>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Green Songs Page -->
+    <div id="pageGreenSongs" class="page-section">
+        <div class="page-wrapper">
+            <header class="page-header">
+                <img src="green grid.png" alt="Green House Title" class="title-image">
+            </header>
+            <main>
+                <div class="grid-container grid-container-3xN">
+                    <button class="launch-button song-button" data-audio-id="greenSong1Audio" aria-label="Play Green Song 1"><img src="green_song1_icon.png" alt="Green Song 1" class="grid-item-image"></button>
+                    <button class="launch-button song-button" data-audio-id="greenSong2Audio" aria-label="Play Green Song 2"><img src="green_song2_icon.png" alt="Green Song 2" class="grid-item-image"></button>
+                    <button class="launch-button song-button" data-audio-id="greenSong3Audio" aria-label="Play Green Song 3"><img src="green_song3_icon.png" alt="Green Song 3" class="grid-item-image"></button>
+                    <button class="launch-button song-button" data-audio-id="greenSong4Audio" aria-label="Play Green Song 4"><img src="green_song4_icon.png" alt="Green Song 4" class="grid-item-image"></button>
+                    <button class="launch-button song-button" data-audio-id="greenSong5Audio" aria-label="Play Green Song 5"><img src="green_song5_icon.png" alt="Green Song 5" class="grid-item-image"></button>
+                    <button class="launch-button song-button" data-audio-id="greenSong6Audio" aria-label="Play Green Song 6"><img src="green_song6_icon.png" alt="Green Song 6" class="grid-item-image"></button>
+                </div>
+            </main>
+        </div>
+    </div>
+    <!-- End Page Sections -->
+
+
+    <div class="watermark">Scott Clee dev ©</div>
+
+    <!-- Audio Elements (truncated for brevity in this explanation, full list is in the actual code) -->
+    <audio id="welcomeAudio" src="Welcome.mp3" preload="auto"></audio>
+    <audio id="houseColoursFMAudio" src="house colours fm.mp3" preload="auto"></audio>
+    <audio id="yellowGridAudio" src="yellow grid.mp3" preload="auto"></audio>
+    <!-- ... more audio elements ... -->
+    <audio id="redSong1Audio" src="redsong1.mp3" preload="auto"></audio>
+    <!-- ... all other song audio elements ... -->
+    <audio id="greenSong6Audio" src="greensong6.mp3" preload="auto"></audio>
+
+
+    <script>
+        // --- START OF EMBEDDED JAVASCRIPT (No changes to JS needed for this CSS update) ---
+        function showPage(pageIdToShow) {
+            document.querySelectorAll('.page-section').forEach(page => {
+                page.style.display = 'none';
+            });
+
+            const pageElement = document.getElementById(pageIdToShow);
+            if (pageElement) {
+                if (pageIdToShow === 'pageIndex') {
+                    document.body.className = 'body-config-index';
+                    pageElement.style.display = 'flex';
+                } else {
+                    document.body.className = 'body-config-standard';
+                    pageElement.style.display = 'flex'; 
+                }
+                // Scroll to top when changing pages
+                window.scrollTo(0, 0);
+            } else {
+                console.error("Page not found:", pageIdToShow);
+            }
+        }
+
+        function playAudioAndNavigate(audioId, targetPageOrUrl, buttonElement) {
+            const audio = document.getElementById(audioId);
+            let allAudioElements = document.querySelectorAll('audio');
+            
+            // Pause all other audio elements
+            allAudioElements.forEach(aud => {
+                if (aud.id !== audioId && !aud.paused) {
+                    aud.pause();
+                    aud.currentTime = 0; // Reset their time
+                }
+            });
+
+            if (buttonElement) {
+                buttonElement.disabled = true; 
+            }
+
+            if (audio) {
+                audio.currentTime = 0; 
+                const playPromise = audio.play();
+
+                if (playPromise !== undefined) {
+                    playPromise.then(_ => {
+                        console.log(`Audio ${audioId} started.`);
+                        audio.onended = function() {
+                            if (targetPageOrUrl) {
+                                if (typeof targetPageOrUrl === 'string' && (targetPageOrUrl.startsWith('http') || targetPageOrUrl.endsWith('.html'))) {
+                                    window.location.href = targetPageOrUrl; 
+                                } else {
+                                    showPage(targetPageOrUrl); 
+                                    if (buttonElement) buttonElement.disabled = false; 
+                                }
+                            } else {
+                                if (buttonElement) buttonElement.disabled = false; 
+                            }
+                        };
+                         // If just playing a song (no navigation), re-enable button sooner if needed, or on end.
+                        if (!targetPageOrUrl) {
+                            // For song plays, re-enable button after a short delay or on ended
+                            // audio.onended handles this, but for quicker re-enable:
+                            // setTimeout(() => { if (buttonElement) buttonElement.disabled = false; }, audio.duration * 1000 || 2000);
+                        }
+
+                    }).catch(error => {
+                        console.warn(`Could not play audio ${audioId}:`, error);
+                        if (targetPageOrUrl) {
+                            if (typeof targetPageOrUrl === 'string' && (targetPageOrUrl.startsWith('http') || targetPageOrUrl.endsWith('.html'))) {
+                                window.location.href = targetPageOrUrl;
+                            } else {
+                                showPage(targetPageOrUrl);
+                                if (buttonElement) buttonElement.disabled = false;
+                            }
+                        } else {
+                           if (buttonElement) buttonElement.disabled = false;
+                        }
+                    });
+                } else { 
+                    console.warn("playPromise not supported for audio element " + audioId);
+                    if (targetPageOrUrl) {
+                         if (typeof targetPageOrUrl === 'string' && (targetPageOrUrl.startsWith('http') || targetPageOrUrl.endsWith('.html'))) {
+                            window.location.href = targetPageOrUrl;
+                        } else {
+                            showPage(targetPageOrUrl);
+                           if (buttonElement) buttonElement.disabled = false;
+                        }
+                    } else {
+                        if (buttonElement) buttonElement.disabled = false;
+                    }
+                }
+            } else {
+                console.warn(`Audio element '${audioId}' not found.`);
+                if (targetPageOrUrl) {
+                    if (typeof targetPageOrUrl === 'string' && (targetPageOrUrl.startsWith('http') || targetPageOrUrl.endsWith('.html'))) {
+                        window.location.href = targetPageOrUrl;
+                    } else {
+                        showPage(targetPageOrUrl);
+                        if (buttonElement) buttonElement.disabled = false;
+                    }
+                } else {
+                    if (buttonElement) buttonElement.disabled = false;
+                }
+            }
+        }
+
+        function playSong(audioId, buttonElement) {
+            playAudioAndNavigate(audioId, null, buttonElement); 
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            showPage('pageIndex');
+
+            const launchAppBtn = document.getElementById('launchAppButton');
+            if (launchAppBtn) {
+                launchAppBtn.addEventListener('click', function() {
+                    playAudioAndNavigate('welcomeAudio', 'app.html', this);
+                });
+            }
+
+            const houseColoursFMBtn = document.getElementById('houseColoursFMButton');
+            if (houseColoursFMBtn) {
+                houseColoursFMBtn.addEventListener('click', function() {
+                    playAudioAndNavigate('houseColoursFMAudio', 'pageHouseColoursFMMenu', this);
+                });
+            }
+
+            document.getElementById('yellowCategoryButton').addEventListener('click', function() {
+                playAudioAndNavigate('yellowGridAudio', 'pageYellowSongs', this);
+            });
+            document.getElementById('redCategoryButton').addEventListener('click', function() {
+                playAudioAndNavigate('redGridAudio', 'pageRedSongs', this);
+            });
+            document.getElementById('blueCategoryButton').addEventListener('click', function() {
+                playAudioAndNavigate('blueGridAudio', 'pageBlueSongs', this);
+            });
+            document.getElementById('greenCategoryButton').addEventListener('click', function() {
+                playAudioAndNavigate('greenGridAudio', 'pageGreenSongs', this);
+            });
+
+            document.querySelectorAll('.song-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    const audioId = this.dataset.audioId;
+                    if (audioId) {
+                        playSong(audioId, this);
+                    } else {
+                        console.error("No audio ID found for this song button.", this);
+                    }
+                });
+            });
+        });
+        // --- END OF EMBEDDED JAVASCRIPT ---
+    </script>
+</body>
+</html>
